@@ -71,9 +71,14 @@ LP_ENABLE_BATT=1
 # Recommended value is 0
 LP_ENABLE_VCS_ROOT=0
 
-# Do you want to use the git special features ?
+# Do you want to show the current branch name when in a git repo ?
 # Recommended value is 1
 LP_ENABLE_GIT=1
+
+# Do you want to use the git special features (modified/staged files, pending commits, modified lines, etc.) ?
+# This won't have any effect if LP_ENABLE_GIT is set to 0.
+# Recommended value is 1
+LP_ENABLE_GIT_EXTRA=1
 
 # Do you want to use the svn special features ?
 # Recommended value is 1
