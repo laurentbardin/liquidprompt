@@ -37,6 +37,8 @@ a  red ⌁ if the battery is discharging and under threshold;
 threshold, with a colormap, going more and more red with decreasing power;
 * the average of the processors load, if it is over a given limit, with a
 colormap that becomes more and more noticeable with increasing load;
+* the average temperature of the available sensors in the system (generally CPU
+and MB);
 * the number of detached sessions (`screen` or `tmux`), if there are any;
 * the number of attached sleeping jobs (when you interrupt a command with Ctrl-Z
 and bring it back with `fg`), if there are any;
@@ -59,10 +61,11 @@ preserving the first two directories;
 (git, mercurial, subversion, bazaar or fossil), in green if everything is up
 to date, in red if there are changes, in yellow if there are pending
 commits to push;
-* the number of added/deleted lines (git) or files (fossil), if
-changes have been made and the number of pending commits, if any;
+* the number of added/deleted lines if changes have been made and the
+number of pending commits, if any;
 * a yellow plus if there is stashed modifications;
 * a red star if there is some untracked files in the repository;
+* the runtime of the last command, if it has exceeded a certain threshold
 * the error code of the last command, if it has failed in some way;
 * a smart mark: ± for git directories, ☿ for mercurial, ‡ for svn,
 ‡± for git-svn, ⌘ for fossil, $ or % for simple user, a red # for root;
@@ -83,37 +86,49 @@ See the DEPENDENCIES section for what you need.
 
 Follow these steps:
 
-`cd ~/`
-`git clone https://github.com/nojhan/liquidprompt.git`
-`source liquidprompt/liquidprompt`
+```
+cd
+git clone https://github.com/nojhan/liquidprompt.git
+source liquidprompt/liquidprompt
+```
 
-To use it everytime you start a shell add the following line to your `.bashrc`.
+To use it everytime you start a shell add the following line to your
+`.bashrc` (if you use bash) or `.zshrc` (if you use zsh):
 
 `source ~/liquidprompt/liquidprompt`
 
 Next up is the configuration, you can skip this step if you already like the defaults:
 
-`cp ~/liquidpromp/liquidpromptrc-dist ~/.config/liquidpromptrc`
+`cp ~/liquidprompt/liquidpromptrc-dist ~/.config/liquidpromptrc`
 
 You can also copy the file to `~/.liquidpromptrc`.
-Use your favorite text editor to change the defaults. 
+Use your favorite text editor to change the defaults.
 The `liquidpromptrc` file is richly commented and easy to set your own defaults.
 You can even theme liquidprompt and have a custom PS1. This is explained
 in the sections below.
 
-Please do not edit or set the `PROMPT_COMMAND` variable, or else the
-prompt will not be available.
+Check in your `.bashrc` that the `PROMPT_COMMAND` variable is not set, or else
+the prompt will not be available.
 
+### INSTALLATION VIA ANTIGEN
+
+To install via antigen, simply add the following line in your .zshrc after activating antigen:
+
+```
+antigen bundle nojhan/liquidprompt
+```
 
 ## DEPENDENCIES
 
-Apart from obvious ones, some features depends on specific commands. If you do
+Apart from obvious ones, some features depend on specific commands. If you do
 not install them, the corresponding feature will not be available, but you will
 see no error.
 
 * battery status needs `acpi`.
+* temperature status needs `lm-sensors`.
 * detached sessions is looking for `screen` and/or `tmux`.
-* VCS support features needs… `git`, `hg` or `svn`, but you knew it.
+* VCS support features needs… `git`, `hg`, `svn`, `bzr` or `fossil`, but you
+knew it.
 
 For other features, the script uses commands that should be available on a large
 variety of unixes: `tput`, `grep`, `awk`, `sed`, `ps`, `who`.
@@ -121,12 +136,14 @@ variety of unixes: `tput`, `grep`, `awk`, `sed`, `ps`, `who`.
 
 ## FEATURES CONFIGURATION
 
-You can configure some variables in the `~/.liquidpromptrc` file:
+You can configure some variables in the `~/.config/liquidpromptrc` file:
 
 * `LP_BATTERY_THRESHOLD`, the maximal value under which the battery level is
 displayed
-* `LP_LOAD_THRESHOLD`, the minimal value after which the load average is
+* `LP_LOAD_THRESHOLD`, the minimal value after which the load average is displayed
+* `LP_TEMP_THRESHOLD`, the minimal value after which the temperature average is
 displayed
+* `LP_RUNTIME_THRESHOLD`, the minimal value after which the runtime is displayed
 * `LP_PATH_LENGTH`, the maximum percentage of the screen width used to display
 the path
 * `LP_PATH_KEEP`, how many directories to keep at the beginning of a shortened
@@ -153,6 +170,7 @@ building:
 * `LP_ENABLE_TITLE`, if you want to use the prompt as your terminal window's title
 * `LP_ENABLE_SCREEN_TITLE`, if you want to use the prompt as your screen window's title
 * `LP_ENABLE_SSH_COLORS`, if you want different colors for hosts you SSH in
+* `LP_ENABLE_RUNTIME`, if you want to display the runtime of the last command
 * `LP_ENABLE_TIME`, if you want to display the time at which the prompt was shown
 * `LP_TIME_ANALOG`, when showing time, use an analog clock instead of numeric values
 
@@ -176,12 +194,17 @@ disabled.
 
 ## CUSTOMIZING THE PROMPT
 
-### ADD A PS1 PREFIX
+### ADD A PREFIX/POSTFIX
 
 You can prefix the `LP_PS1` variable with anything you want using the
 `LP_PS1_PREFIX`. The following example activate a custom window's title:
 
     LP_PS1_PREFIX="\[\e]0;\u@\h: \w\a\]"
+
+To postfix the prompt, use the `LP_PS1_POSTFIX` variable. For example, to add a
+newline and a single character:
+
+    LP_PS1_POSTFIX="\n>"
 
 Note: the `prompt_tag` function is  convenient way to add a prefix. You can thus add
 a keyword to your different terminals:
@@ -205,6 +228,7 @@ theme colors.
 Available features:
 * `LP_BATT` battery
 * `LP_LOAD` load
+* `LP_TEMP` temperature
 * `LP_JOBS` detached screen or tmux sessions/running jobs/suspended jobs
 * `LP_USER` user
 * `LP_HOST` hostname
@@ -214,7 +238,8 @@ Available features:
 * `LP_VCS` informations concerning the current working repository
 * `LP_ERR` last error code
 * `LP_MARK` prompt mark
-* `LP_TITLE` the prompt as a window's title escaped sequence
+* `LP_TITLE` the prompt as a window's title escaped sequences
+* `LP_BRACKET_OPEN` and `LP_BRACKET_CLOSE`, brackets enclosing the user+path part
 
 For example, if you just want to have a liquidprompt displaying the user and the
 host, with a normal full path in blue and only the git support:
@@ -321,6 +346,8 @@ limitation of the Subversion versionning model.
 * The proxy detection only uses the `$http_proxy` environment variable.
 * The window's title escape sequence may not work properly on some terminals
 (like xterm-256)
-* The analog clock necessitate a unicode-aware terminal and a sufficiently
-complete font.
-
+* The analog clock necessitate a unicode-aware terminal and a at least one
+sufficiently complete font on your system.
+The [Symbola](http://users.teilar.gr/~g1951d/) font, designed by Georges Douros,
+is known to work well.
+* Displaying the runtime currently only works with bash
